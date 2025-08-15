@@ -1,7 +1,7 @@
 # 🚀 LinkedIn Profile Scraper & Data Pipeline
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image1.png" alt="Extension UI" width="750"/>
+  <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image1.png" alt="Extension UI" width="450"/>
 </p>
 
 A powerful Chrome extension that automates the collection of public data from LinkedIn profiles. This tool provides a full end-to-end data pipeline, from a user-friendly interface to a robust backend that intelligently saves scraped information into a structured database.
