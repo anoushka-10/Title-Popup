@@ -283,13 +283,10 @@ function scrapeLinkedInProfile() {
     data.location = locationElement ? locationElement.textContent.trim() : '';
 
     
-    const aboutSelectors = [
-      '[data-generated-suggestion-target] .full-width .t-14',
-      '.pv-shared-text-with-see-more .full-width',
-      '[data-section="about"] .full-width',
-      '.pv-about-section .full-width'
-    ];
-    
+const aboutSelectors = [
+  '#about ~ .display-flex .visually-hidden',
+  '#about ~ div span[aria-hidden="true"]'      
+];
     let aboutElement = null;
     for (const selector of aboutSelectors) {
       aboutElement = document.querySelector(selector);
