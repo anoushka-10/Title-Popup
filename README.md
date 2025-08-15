@@ -70,7 +70,7 @@ To run this project, you need to set up both the backend server and the Chrome e
 **Instructions:**
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/anoushka-10/Title-Popup.git](https://github.com/anoushka-10/Title-Popup.git)
+    git clone https://github.com/anoushka-10/Title-Popup.git
     ```
 2.  **Navigate to the server directory:**
     ```bash
