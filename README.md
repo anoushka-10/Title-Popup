@@ -1,7 +1,7 @@
 # 🚀 LinkedIn Profile Scraper & Data Pipeline
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image1.png" alt="Extension UI" width="450"/>
+  <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image1.png" alt="Extension UI" width="370"/>
 </p>
 
 A powerful Chrome extension that automates the collection of public data from LinkedIn profiles. This tool provides a full end-to-end data pipeline, from a user-friendly interface to a robust backend that intelligently saves scraped information into a structured database.
@@ -10,12 +10,28 @@ A powerful Chrome extension that automates the collection of public data from Li
 
 ## ✨ Key Features & Workflow
 
-The extension provides a seamless, automated workflow for data collection.
+The extension provides a seamless, automated workflow for data collection, broken down into three simple steps.
 
-| Step 1: Input URLs | Step 2: Automated Scraping | Step 3: View Saved Data |
-| :---: | :---: | :---: |
-| The user provides a list of LinkedIn profile URLs and initiates the process with a single click. | The extension systematically opens, scrapes, and closes each profile in the background. | The extracted data is saved and can be viewed in a structured SQLite database. |
-| <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image1.png" alt="Extension UI" width="300"/> | <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image3.png" alt="Running Extension" width="300"/> | <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image2.png" alt="Database View" width="300"/> |
+### 1. Input URLs & Start Scraping
+The user provides a list of LinkedIn profile URLs and initiates the process with a single click from the clean, intuitive UI.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image1.png" alt="Extension UI" width="400"/>
+</p>
+
+### 2. Automated Browser Actions
+The extension systematically opens, scrapes, and closes each profile in the background, providing real-time progress updates.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image3.png" alt="Running Extension" width="400"/>
+</p>
+
+### 3. View Structured Data
+The extracted data is saved into a structured SQLite database, which can be easily viewed and exported.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image2.png" alt="Database View" width="600"/>
+</p>
 
 -   **Bulk Profile Processing**: Scrape multiple profiles in a single batch operation.
 -   **Resilient Data Extraction**: Employs an array of fallback CSS selectors to ensure data is captured correctly even if LinkedIn's UI changes.
@@ -58,9 +74,8 @@ To run this project, you need to set up both the backend server and the Chrome e
     ```
 2.  **Navigate to the server directory:**
     ```bash
-    cd Title-Popup/backend-folder-name 
+    cd Title-Popup/backend 
     ```
-    _Note: Replace `backend-folder-name` with the actual name of your server folder._
 3.  **Install dependencies:**
     ```bash
     npm install
