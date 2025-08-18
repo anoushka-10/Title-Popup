@@ -111,8 +111,13 @@
       align-items: center;
     }
     
-    .section-title::before {
+    .section-title.scraper::before {
       content: "👔";
+      margin-right: 8px;
+    }
+    
+    .section-title.interaction::before {
+      content: "⚡";
       margin-right: 8px;
     }
     
@@ -132,6 +137,43 @@
       outline: none;
       border-color: #0077b5;
       box-shadow: 0 0 0 3px rgba(0, 119, 181, 0.1);
+    }
+    
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    
+    .input-field {
+      flex: 1;
+    }
+    
+    .input-field label {
+      display: block;
+      font-size: 12px;
+      color: #0077b5;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    .input-field input {
+      width: calc(100% - 16px);
+      padding: 8px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s ease;
+    }
+    
+    .input-field input:focus {
+      outline: none;
+      border-color: #0077b5;
+      box-shadow: 0 0 0 3px rgba(0, 119, 181, 0.1);
+    }
+    
+    .input-field input:invalid {
+      border-color: #e74c3c;
     }
     
     .buttons {
@@ -288,6 +330,50 @@
       font-size: 11px;
       color: #2c3e50;
     }
+    
+    .mode-toggle {
+      display: flex;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 25px;
+      padding: 4px;
+      margin-bottom: 15px;
+    }
+    
+    .mode-toggle button {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 20px;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .mode-toggle button.active {
+      background: rgba(255,255,255,0.9);
+      color: #0077b5;
+      font-weight: 600;
+    }
+    
+    .mode-toggle button:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .mode-toggle button::before {
+      display: none;
+    }
+    
+    .mode-section {
+      display: none;
+    }
+    
+    .mode-section.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -297,7 +383,7 @@
     <div class="sparkle" style="top: 30px; right: 30px; animation-delay: 1s;"></div>
     <div class="sparkle" style="top: 15px; right: 60px; animation-delay: 2s;"></div>
     <div class="sparkle" style="top: 25px; left: 60px; animation-delay: 1.5s;"></div>
-    <h1>LinkedIn Profile Scraper</h1>
+    <h1>LinkedIn Extension</h1>
   </div>
   
   <div class="container">
@@ -308,27 +394,67 @@
       <div class="tab-url" id="currentUrl"></div>
     </div>
 
-    <div class="profile-section">
-      <div class="section-title">LinkedIn Profile URLs</div>
-      <div class="profile-links">
-        <textarea id="profileUrls" placeholder="Paste LinkedIn profile URLs here (one per line)...
+    <!-- Mode Toggle -->
+    <div class="mode-toggle">
+      <button id="scraperMode" class="active">📊 Profile Scraper</button>
+      <button id="interactionMode">⚡ Feed Interaction</button>
+    </div>
+
+    <!-- Profile Scraper Section -->
+    <div id="scraperSection" class="mode-section active">
+      <div class="profile-section">
+        <div class="section-title scraper">LinkedIn Profile URLs</div>
+        <div class="profile-links">
+          <textarea id="profileUrls" placeholder="Paste LinkedIn profile URLs here (one per line)...
 
 Example:
 https://www.linkedin.com/in/example1/
 https://www.linkedin.com/in/example2/
 https://www.linkedin.com/in/example3/"></textarea>
-        <div class="url-count" id="urlCount">0 profiles ready</div>
+          <div class="url-count" id="urlCount">0 profiles ready</div>
+        </div>
+        <div class="tip">
+          💡 Make sure you're logged into LinkedIn before starting the scraper!
+        </div>
       </div>
-      <div class="tip">
-        💡 Make sure you're logged into LinkedIn before starting the scraper!
+
+      <div class="buttons">
+        <button id="startScraping">🚀 Start Scraping</button>
+        <button id="stopScraping" disabled>⏹️ Stop</button>
       </div>
     </div>
 
-    <div class="buttons">
-      <button id="startScraping">🚀 Start Scraping</button>
-      <button id="stopScraping" disabled>⏹️ Stop</button>
+    <!-- Feed Interaction Section -->
+    <div id="interactionSection" class="mode-section">
+      <div class="profile-section">
+        <div class="section-title interaction">Feed Interaction Settings</div>
+        
+        <div class="input-group">
+          <div class="input-field">
+            <label for="likeCount">👍 Like Count</label>
+            <input type="number" id="likeCount" min="1" max="50" placeholder="e.g., 5">
+          </div>
+          <div class="input-field">
+            <label for="commentCount">💬 Comment Count</label>
+            <input type="number" id="commentCount" min="1" max="20" placeholder="e.g., 3">
+          </div>
+        </div>
+        
+        <div class="tip">
+          💡 Navigate to LinkedIn Feed manually before starting. Make sure you're logged in!
+        </div>
+        <div class="tip" style="margin-top: 8px;">
+          🤖 Generic comment "CFBR" will be used for commenting.
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button id="startInteraction" disabled>🚀 Start Interaction</button>
+        <button id="stopInteraction" disabled>⏹️ Stop</button>
+      </div>
     </div>
 
+    <!-- Status Section -->
     <div id="status" class="status" style="display: none;">
       <div id="statusText"></div>
       <div class="progress-bar" id="progressBar" style="display: none;">
@@ -341,6 +467,7 @@ https://www.linkedin.com/in/example3/"></textarea>
     </div>
   </div>
   
+  <!-- External JavaScript file -->
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,28 +1,78 @@
-let isScrapingActive = false;
-let currentScrapingIndex = 0;
-let profileUrls = [];
-let scrapedProfiles = [];
 
-document.addEventListener('DOMContentLoaded', async () => {
+const scraperModeBtn = document.getElementById('scraperMode');
+const interactionModeBtn = document.getElementById('interactionMode');
+const scraperSection = document.getElementById('scraperSection');
+const interactionSection = document.getElementById('interactionSection');
+
+const profileUrls = document.getElementById('profileUrls');
+const urlCount = document.getElementById('urlCount');
+const likeCount = document.getElementById('likeCount');
+const commentCount = document.getElementById('commentCount');
+
+const startScraping = document.getElementById('startScraping');
+const stopScraping = document.getElementById('stopScraping');
+const startInteraction = document.getElementById('startInteraction');
+const stopInteraction = document.getElementById('stopInteraction');
+
+const status = document.getElementById('status');
+const statusText = document.getElementById('statusText');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const stats = document.getElementById('stats');
+const currentProfile = document.getElementById('currentProfile');
+const profileCount = document.getElementById('profileCount');
+const currentTab = document.getElementById('currentTab');
+const currentUrl = document.getElementById('currentUrl');
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Popup loaded');
   
-  await loadCurrentTabInfo();
   
-  const result = await chrome.storage.sync.get(['profileUrls']);
-  if (result.profileUrls) {
-    document.getElementById('profileUrls').value = result.profileUrls;
-    updateUrlCount();
-  }
+  loadCurrentTabInfo();
+  
+  
+  setupEventListeners();
+  
+  
+  loadSavedUrls();
+  
+  
+  validateInteractionInputs();
+});
+
+function setupEventListeners() {
+  
+  scraperModeBtn.addEventListener('click', () => {
+    scraperModeBtn.classList.add('active');
+    interactionModeBtn.classList.remove('active');
+    scraperSection.classList.add('active');
+    interactionSection.classList.remove('active');
+  });
+
+  interactionModeBtn.addEventListener('click', () => {
+    interactionModeBtn.classList.add('active');
+    scraperModeBtn.classList.remove('active');
+    interactionSection.classList.add('active');
+    scraperSection.classList.remove('active');
+  });
 
   
-  document.getElementById('startScraping').addEventListener('click', startScraping);
-  document.getElementById('stopScraping').addEventListener('click', stopScraping);
+  likeCount.addEventListener('input', validateInteractionInputs);
+  commentCount.addEventListener('input', validateInteractionInputs);
+
   
-  
-  document.getElementById('profileUrls').addEventListener('input', () => {
+  profileUrls.addEventListener('input', () => {
     saveUrls();
     updateUrlCount();
   });
-});
+
+  
+  startScraping.addEventListener('click', handleStartScraping);
+  stopScraping.addEventListener('click', handleStopScraping);
+  startInteraction.addEventListener('click', handleStartInteraction);
+  stopInteraction.addEventListener('click', handleStopInteraction);
+}
 
 async function loadCurrentTabInfo() {
   try {
@@ -31,359 +81,214 @@ async function loadCurrentTabInfo() {
       currentWindow: true 
     });
     
-    const tabElement = document.getElementById('currentTab');
-    const urlElement = document.getElementById('currentUrl');
-    
     if (tab && tab.title) {
-      const favicon = tab.favIconUrl ? 
-        `<img src="${tab.favIconUrl}" class="favicon" onerror="this.style.display='none'">` : '';
-      tabElement.innerHTML = favicon + tab.title;
-      urlElement.textContent = tab.url;
-      
+      currentTab.innerHTML = `<img src="${tab.favIconUrl || ''}" class="favicon" onerror="this.style.display='none'">${tab.title}`;
+      currentUrl.textContent = tab.url;
       
       if (tab.url.includes('linkedin.com')) {
-        tabElement.innerHTML += ' <span style="color: #0077b5;">✓ LinkedIn Detected</span>';
+        currentTab.innerHTML += ' <span style="color: #0077b5;">✓ LinkedIn Detected</span>';
       }
-      
     } else {
-      tabElement.innerHTML = '<span class="error">Unable to get tab info</span>';
+      currentTab.innerHTML = '<span class="error">Unable to get tab info</span>';
     }
-    
   } catch (error) {
-    console.error('Error:', error);
-    document.getElementById('currentTab').innerHTML = '<span class="error">Error loading tab info</span>';
+    console.error('Error loading tab info:', error);
+    currentTab.innerHTML = '<span class="loading">Loading tab info...</span>';
+  }
+}
+
+async function loadSavedUrls() {
+  try {
+    const result = await chrome.storage.sync.get(['profileUrls']);
+    if (result.profileUrls) {
+      profileUrls.value = result.profileUrls;
+      updateUrlCount();
+    }
+  } catch (error) {
+    console.error('Error loading saved URLs:', error);
   }
 }
 
 async function saveUrls() {
-  const urls = document.getElementById('profileUrls').value;
-  await chrome.storage.sync.set({ profileUrls: urls });
+  try {
+    const urls = profileUrls.value;
+    await chrome.storage.sync.set({ profileUrls: urls });
+  } catch (error) {
+    console.error('Error saving URLs:', error);
+  }
 }
 
 function updateUrlCount() {
-  const urls = parseUrls();
-  const countElement = document.getElementById('urlCount');
-  const count = urls.length;
+  const urls = profileUrls.value.trim().split('\n').filter(url => url.trim());
+  const validUrls = urls.filter(url => url.includes('linkedin.com/in/'));
+  urlCount.textContent = `${validUrls.length} profiles ready`;
+}
+
+function validateInteractionInputs() {
+  const likeVal = parseInt(likeCount.value);
+  const commentVal = parseInt(commentCount.value);
+  const isValid = likeVal > 0 && commentVal > 0 && likeVal <= 50 && commentVal <= 20;
+  startInteraction.disabled = !isValid;
+  return isValid;
+}
+
+async function handleStartScraping() {
+  const urls = profileUrls.value.trim().split('\n').filter(url => url.trim() && url.includes('linkedin.com/in/'));
   
-  if (count === 0) {
-    countElement.textContent = '0 profiles ready';
-    countElement.style.color = '#95a5a6';
-  } else if (count < 3) {
-    countElement.textContent = `${count} profile${count > 1 ? 's' : ''} (minimum 3 required)`;
-    countElement.style.color = '#e67e22';
-  } else {
-    countElement.textContent = `${count} profiles ready ✓`;
-    countElement.style.color = '#27ae60';
+  if (urls.length === 0) {
+    showStatus('Please enter valid LinkedIn profile URLs', 'error');
+    setTimeout(hideStatus, 3000);
+    return;
+  }
+
+  startScraping.disabled = true;
+  stopScraping.disabled = false;
+  showStatus('Starting profile scraping...', 'processing');
+  
+  try {
+    const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'startScraping',
+      urls: urls
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        showStatus('Error: Please refresh the LinkedIn page and try again', 'error');
+        resetScrapingButtons();
+        return;
+      }
+      
+      if (response && response.success) {
+        showStatus('Scraping profiles...', 'processing');
+      } else {
+        showStatus('Error starting scraper', 'error');
+        resetScrapingButtons();
+      }
+    });
+    
+  } catch (error) {
+    showStatus('Error: ' + error.message, 'error');
+    resetScrapingButtons();
   }
 }
 
-function showStatus(message, type = 'processing', showProgress = false) {
-  const statusDiv = document.getElementById('status');
-  const statusText = document.getElementById('statusText');
-  const progressBar = document.getElementById('progressBar');
+async function handleStopScraping() {
+  const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+  chrome.tabs.sendMessage(tab.id, {action: 'stopScraping'});
+  resetScrapingButtons();
+  showStatus('Scraping stopped', 'error');
+  setTimeout(hideStatus, 3000);
+}
+
+async function handleStartInteraction() {
+  if (!validateInteractionInputs()) return;
   
+  const likes = parseInt(likeCount.value);
+  const comments = parseInt(commentCount.value);
+  
+  startInteraction.disabled = true;
+  stopInteraction.disabled = false;
+  showStatus('Starting feed interaction...', 'processing');
+  
+  try {
+    const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+    
+    
+    if (!tab.url.includes('linkedin.com')) {
+      showStatus('Please navigate to LinkedIn first', 'error');
+      resetInteractionButtons();
+      return;
+    }
+    
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'startInteraction',
+      likeCount: likes,
+      commentCount: comments
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        showStatus('Error: Please refresh LinkedIn and try again', 'error');
+        resetInteractionButtons();
+        return;
+      }
+      
+      if (response && response.success) {
+        showStatus(`Interacting with ${likes} likes and ${comments} comments...`, 'processing');
+      } else {
+        showStatus('Error starting interaction', 'error');
+        resetInteractionButtons();
+      }
+    });
+    
+  } catch (error) {
+    showStatus('Error: ' + error.message, 'error');
+    resetInteractionButtons();
+  }
+}
+
+async function handleStopInteraction() {
+  const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+  chrome.tabs.sendMessage(tab.id, {action: 'stopInteraction'});
+  resetInteractionButtons();
+  showStatus('Interaction stopped', 'error');
+  setTimeout(hideStatus, 3000);
+}
+
+function resetScrapingButtons() {
+  startScraping.disabled = false;
+  stopScraping.disabled = true;
+}
+
+function resetInteractionButtons() {
+  startInteraction.disabled = !validateInteractionInputs();
+  stopInteraction.disabled = true;
+}
+
+function showStatus(message, type = 'processing') {
   statusText.textContent = message;
-  statusDiv.className = `status ${type}`;
-  statusDiv.style.display = 'block';
+  status.className = `status ${type}`;
+  status.style.display = 'block';
   
-  if (showProgress && type === 'processing') {
+  if (type === 'processing') {
     progressBar.style.display = 'block';
-    document.getElementById('stats').style.display = 'flex';
-    updateProgress();
+    stats.style.display = 'block';
   } else {
     progressBar.style.display = 'none';
-    document.getElementById('stats').style.display = 'none';
+    stats.style.display = 'none';
   }
 }
 
-function updateProgress() {
-  const progressFill = document.getElementById('progressFill');
-  const currentProfile = document.getElementById('currentProfile');
-  const profileCount = document.getElementById('profileCount');
-  
-  const progress = (currentScrapingIndex / profileUrls.length) * 100;
-  progressFill.style.width = `${progress}%`;
-  
-  currentProfile.textContent = `Profile ${currentScrapingIndex}/${profileUrls.length}`;
-  profileCount.textContent = `${scrapedProfiles.length} scraped`;
+function hideStatus() {
+  status.style.display = 'none';
 }
 
-function parseUrls() {
-  const urlText = document.getElementById('profileUrls').value.trim();
-  if (!urlText) return [];
-  
-  return urlText
-    .split('\n')
-    .map(url => url.trim())
-    .filter(url => url && url.includes('linkedin.com/in/'));
-}
-
-async function startScraping() {
-  profileUrls = parseUrls();
-  
-  if (profileUrls.length === 0) {
-    showStatus('❌ Please enter at least one LinkedIn profile URL', 'error');
-    return;
-  }
-
-  if (profileUrls.length < 3) {
-    showStatus('❌ Please enter at least 3 LinkedIn profile URLs', 'error');
-    return;
-  }
-
-  isScrapingActive = true;
-  currentScrapingIndex = 0;
-  scrapedProfiles = [];
-  
-  document.getElementById('startScraping').disabled = true;
-  document.getElementById('stopScraping').disabled = false;
-  
-  showStatus(`🚀 Starting to scrape ${profileUrls.length} profiles...`, 'processing', true);
-  
-  
-  await scrapeNextProfile();
-}
-
-function stopScraping() {
-  isScrapingActive = false;
-  document.getElementById('startScraping').disabled = false;
-  document.getElementById('stopScraping').disabled = true;
-  showStatus('⏹️ Scraping stopped by user', 'error');
-}
-
-async function scrapeNextProfile() {
-  if (!isScrapingActive || currentScrapingIndex >= profileUrls.length) {
-    
-    isScrapingActive = false;
-    document.getElementById('startScraping').disabled = false;
-    document.getElementById('stopScraping').disabled = true;
-    showStatus(`🎉 Scraping completed! Successfully scraped ${scrapedProfiles.length}/${profileUrls.length} profiles`, 'success');
-    return;
-  }
-
-  const currentUrl = profileUrls[currentScrapingIndex];
-  showStatus(`🔍 Scraping profile ${currentScrapingIndex + 1}/${profileUrls.length}`, 'processing', true);
-
-  try {
-    
-    const tab = await chrome.tabs.create({ url: currentUrl, active: false });
-    
-    
-    await new Promise(resolve => setTimeout(resolve, 4000));
-    
-    
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: scrapeLinkedInProfile
-    });
-
-    if (results && results[0] && results[0].result) {
-      const profileData = results[0].result;
-      profileData.url = currentUrl;
-      
-      
-      await sendToAPI(profileData);
-      scrapedProfiles.push(profileData);
-      
-      showStatus(`✅ Successfully scraped: ${profileData.name || 'Profile'}`, 'processing', true);
-    } else {
-      showStatus(`⚠️ Failed to scrape profile data`, 'processing', true);
-    }
-
-    
-    await chrome.tabs.remove(tab.id);
-    
-    
-    currentScrapingIndex++;
-    
-    
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    if (isScrapingActive) {
-      await scrapeNextProfile();
-    }
-
-  } catch (error) {
-    console.error('Error scraping profile:', error);
-    showStatus(`❌ Error scraping ${currentUrl}: ${error.message}`, 'error');
-    
-    currentScrapingIndex++;
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    if (isScrapingActive) {
-      await scrapeNextProfile();
-    }
-  }
+function updateProgress(current, total, currentItem = '') {
+  const percentage = (current / total) * 100;
+  progressFill.style.width = `${percentage}%`;
+  currentProfile.textContent = currentItem;
+  profileCount.textContent = `${current}/${total}`;
 }
 
 
-function scrapeLinkedInProfile() {
-  try {
-    const data = {};
-
-    
-    const waitForElement = (selector, timeout = 5000) => {
-      return new Promise((resolve) => {
-        const element = document.querySelector(selector);
-        if (element) {
-          resolve(element);
-          return;
-        }
-        
-        const observer = new MutationObserver(() => {
-          const element = document.querySelector(selector);
-          if (element) {
-            observer.disconnect();
-            resolve(element);
-          }
-        });
-        
-        observer.observe(document.body, {
-          childList: true,
-          subtree: true
-        });
-        
-        setTimeout(() => {
-          observer.disconnect();
-          resolve(null);
-        }, timeout);
-      });
-    };
-
-    
-    const nameSelectors = [
-      'h1.text-heading-xlarge',
-      '.pv-text-details__left-panel h1',
-      'h1[id*="name"]',
-      '.ph5 h1'
-    ];
-    
-    let nameElement = null;
-    for (const selector of nameSelectors) {
-      nameElement = document.querySelector(selector);
-      if (nameElement) break;
-    }
-    data.name = nameElement ? nameElement.textContent.trim() : '';
-
-    
-    const locationSelectors = [
-      '.text-body-small.inline.t-black--light.break-words',
-      '.pv-text-details__left-panel .text-body-small',
-      '[data-generated-suggestion-target] + .text-body-small',
-      '.ph5 .text-body-small'
-    ];
-    
-    let locationElement = null;
-    for (const selector of locationSelectors) {
-      locationElement = document.querySelector(selector);
-      if (locationElement && locationElement.textContent.trim() && !locationElement.textContent.includes('followers')) {
-        break;
-      }
-    }
-    data.location = locationElement ? locationElement.textContent.trim() : '';
-
-    
-const aboutSelectors = [
-  '#about ~ .display-flex .visually-hidden',
-  '#about ~ div span[aria-hidden="true"]'      
-];
-    let aboutElement = null;
-    for (const selector of aboutSelectors) {
-      aboutElement = document.querySelector(selector);
-      if (aboutElement) break;
-    }
-    data.about = aboutElement ? aboutElement.textContent.trim() : '';
-
-    
-    const bioSelectors = [
-      '.text-body-medium.break-words',
-      '.pv-text-details__left-panel .text-body-medium',
-      'h2.text-heading-large',
-      '.ph5 .text-body-medium'
-    ];
-    
-    let bioElement = null;
-    for (const selector of bioSelectors) {
-      bioElement = document.querySelector(selector);
-      if (bioElement) break;
-    }
-    data.bio = bioElement ? bioElement.textContent.trim() : '';
-
-    
-    const followerSelectors = [
-      'a[href*="followers"] .t-bold',
-      '.pv-recent-activity-section__follower-count .t-bold',
-      '[aria-label*="follower"] .t-bold'
-    ];
-    
-    let followerElement = null;
-    for (const selector of followerSelectors) {
-      followerElement = document.querySelector(selector);
-      if (followerElement) break;
-    }
-    data.followerCount = followerElement ? parseConnectionCount(followerElement.textContent.trim()) : 0;
-
-    
-    const connectionSelectors = [
-      'a[href*="connections"] .t-bold',
-      '.pv-top-card--list-bullet .t-bold',
-      '[aria-label*="connection"] .t-bold'
-    ];
-    
-    let connectionElement = null;
-    for (const selector of connectionSelectors) {
-      connectionElement = document.querySelector(selector);
-      if (connectionElement) break;
-    }
-    data.connectionCount = connectionElement ? parseConnectionCount(connectionElement.textContent.trim()) : 0;
-
-    console.log('Scraped data:', data);
-    return data;
-
-  } catch (error) {
-    console.error('Error in scraping function:', error);
-    return null;
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'scrapingProgress') {
+    updateProgress(message.current, message.total, message.currentProfile);
+  } else if (message.action === 'scrapingComplete') {
+    showStatus(`Scraping completed! ${message.count} profiles processed`, 'success');
+    resetScrapingButtons();
+    setTimeout(hideStatus, 5000);
+  } else if (message.action === 'scrapingError') {
+    showStatus('Scraping error: ' + message.error, 'error');
+    resetScrapingButtons();
+    setTimeout(hideStatus, 5000);
+  } else if (message.action === 'interactionProgress') {
+    updateProgress(message.current, message.total, `${message.likes} likes, ${message.comments} comments`);
+  } else if (message.action === 'interactionComplete') {
+    showStatus(`Interaction completed! ${message.likes} likes, ${message.comments} comments`, 'success');
+    resetInteractionButtons();
+    setTimeout(hideStatus, 5000);
+  } else if (message.action === 'interactionError') {
+    showStatus('Interaction error: ' + message.error, 'error');
+    resetInteractionButtons();
+    setTimeout(hideStatus, 5000);
   }
-
-  function parseConnectionCount(text) {
-    if (!text) return 0;
-    
-    
-    text = text.toLowerCase().replace(/,/g, '').replace(/\+/g, '');
-    
-    
-    if (text.includes('k')) {
-      return parseInt(parseFloat(text) * 1000);
-    } else if (text.includes('m')) {
-      return parseInt(parseFloat(text) * 1000000);
-    } else {
-      const num = parseInt(text);
-      return isNaN(num) ? 0 : num;
-    }
-  }
-}
-
-async function sendToAPI(profileData) {
-  try {
-    const response = await fetch('http://localhost:3000/api/profiles', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(profileData)
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('Profile saved:', result);
-    return result;
-
-  } catch (error) {
-    console.error('Error sending to API:', error);
-    
-    return null;
-  }
-}
+});
