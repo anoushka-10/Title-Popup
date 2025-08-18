@@ -2,6 +2,8 @@
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image1.png" alt="Extension UI" width="370"/>
+    <img src="https://raw.githubusercontent.com/anoushka-10/Title-Popup/main/images/image4.png" alt="Feed Interaction Mode" width="400"/>
+
 </p>
 
 A comprehensive Chrome extension that automates LinkedIn interactions with two powerful modes: **Profile Scraping** for data collection and **Feed Interaction** for automated engagement. This tool provides a complete automation pipeline with an intuitive interface and robust backend infrastructure.
